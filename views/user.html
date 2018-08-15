@@ -1,0 +1,16 @@
+<html>
+<head>
+<title>Wallet</title>
+</head>
+
+<body>
+    <h1>Transferir dinheiro para {{user.nickname}}</h1>
+    
+    <form action='/users/{{user.nickname}}/transfer' method='POST'>
+        
+        <input type='number' name='money' />
+        <input type='submit' value='Transferir!' onsubmit='if (!confirm("Confirma a realização da transação?")) return false;' />
+        
+    </form>
+</body>
+</html>

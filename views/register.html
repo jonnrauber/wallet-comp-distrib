@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Wallet{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+    <h1>Wallet</h1>
+
+    <form action='/api/users/new' method='POST'>
+        <input type='text' name='nickname' placeholder='nickname' />
+        <input type='submit' value='Cadastrar' />
+    </form>
+{% endblock %}

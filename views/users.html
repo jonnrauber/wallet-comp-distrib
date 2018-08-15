@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Wallet{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+
+<ul id='registered_users'>
+{% for user in users %}
+    <li><a href='users/{{user.nickname}}'>{{ user.nickname }}</a></li>
+{% endfor %}
+</ul>
+{% endblock %}
