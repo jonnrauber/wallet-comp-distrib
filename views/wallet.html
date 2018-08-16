@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Wallet{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+    <li class="breadcrumb-item active" aria-current="page">Minha carteira</li>
+  </ol>
+</nav>
+
+<div class="container">
+  <div class="row">
+    <h2 class="col-12 display-5 text-center">Minha carteira</h2>
+    <p class="col-12 text-center">Saldo atual:</p>
+    <h1 class="col-12 text-center">{{"${:,.2f}".format(logged_user.money)}}</h1>
+  </div>
+</div>
+
+{% endblock %}

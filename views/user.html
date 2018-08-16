@@ -1,16 +1,37 @@
-<html>
-<head>
-<title>Wallet</title>
-</head>
+{% extends "base.html" %}
+{% block title %}Wallet{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
 
-<body>
-    <h1>Transferir dinheiro para {{user.nickname}}</h1>
-    
-    <form action='/users/{{user.nickname}}/transfer' method='POST'>
-        
-        <input type='number' name='money' />
-        <input type='submit' value='Transferir!' onsubmit='if (!confirm("Confirma a realização da transação?")) return false;' />
-        
-    </form>
-</body>
-</html>
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+    <li class="breadcrumb-item"><a href="/users">Usuários</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{user.nickname}}</li>
+  </ol>
+</nav>
+
+<div class="container">
+  <div class="row">
+    <h2 class="col-12 display-5 text-center">Transferir dinheiro para {{user.nickname}}</h2>
+    <p class="col-12 text-center">Saldo atual: {{"${:,.2f}".format(logged_user.money)}}</p>
+  </div>
+
+  <form class="row" action='/users/{{user.nickname}}/transfer' method='POST'>
+    <div class="col-4 offset-4 input-group mb-3">
+      <div class="input-group-prepend">
+        <span class="input-group-text">$</span>
+      </div>
+      <input type="text" class="form-control" aria-label="Amount (to the nearest dollar)">
+    </div>
+    <div class="col-2 offset-5">
+      <button type='submit' class="btn btn-success btn-block" onsubmit='if (!confirm("Confirma a realização da transação?")) return false;'>
+        <i class="fas fa-money-bill-wave"></i> Transferir!
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
