@@ -60,24 +60,11 @@ def load_user(nickname):
             user = u
     return special_json({'user': user.__dict__})
 
+
 @get('/wallet')
 @view('wallet.html')
 def load_wallet():
     return special_json({})
-
-
-@get('/api/users')
-def list_users():
-    return special_json(json.dumps([user.__dict__ for user in users]))
-
-
-@post('/api/users/new')
-def add_user():
-    global users
-    nickname = request.forms.get('nickname')
-    new_user = User(nickname, 0)
-    users.append(new_user)
-    redirect('/')
 
 
 @post('/users/<dst_user>/transfer')
