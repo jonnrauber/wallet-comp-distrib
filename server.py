@@ -11,7 +11,7 @@ logged_user = None #informação do usuário logado
 
 """Informação a ser compartilhada entre servers"""
 #informações do usuário em pares (nickname, money)
-users = [User('admin', 999999)]
+users = [User('jose', 300), User('maria', 20)]
 #transações de toda a aplicação (src_user, dst_user, money)
 transactions = []
 
@@ -67,6 +67,12 @@ def load_wallet():
     return special_json({})
 
 
+@get('/transactions')
+@view('transactions.html')
+def load_transactions_page():
+    return special_json({'transactions': transactions})
+
+
 @post('/users/<dst_user>/transfer')
 def transfer_money(dst_user):
     global users
@@ -76,6 +82,18 @@ def transfer_money(dst_user):
 
 
 if __name__ == "__main__":
-    logged_user = User(str(sys.argv[2]), float((sys.argv[3])))
-    users.append(logged_user)
+    user_nickname = str(sys.argv[2])
+    try:
+        index = -1
+        for idx, user in enumerate(users):
+            if user.nickname == user_nickname:
+                index = idx
+                break
+        if index < 0:
+            raise ValueError('Usuário \'{}\' não encontrado.'.format(user_nickname))
+    except ValueError as ve:
+        print('Erro! {}'.format(ve))
+        exit(1)
+
+    logged_user = users[idx]
     run(host='localhost', port=int(sys.argv[1]), reloader=True, debug=True)
