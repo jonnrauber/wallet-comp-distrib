@@ -1,4 +1,5 @@
-from bottle import request, post, get, route, jinja2_view, run, redirect, template, static_file
+import bottle_session
+from bottle import request, post, get, route, jinja2_view, run, redirect, template, static_file, app
 import functools
 import json
 import threading
@@ -6,8 +7,8 @@ import time
 import sys
 from classes import User, Transaction
 
+app = app()
 view = functools.partial(jinja2_view, template_lookup=['views'])
-logged_user = None #informação do usuário logado
 
 """Informação a ser compartilhada entre servers"""
 #informações do usuário em pares (nickname, money)
@@ -15,85 +16,135 @@ users = [User('jose', 300), User('maria', 20)]
 #transações de toda a aplicação (src_user, dst_user, money)
 transactions = []
 
-@get('/<filename:re:.*\.css>')
+#servir arquivos css
+@app.get('/<filename:re:.*\.css>')
 def stylesheets(filename):
     return static_file(filename, root='static/')
 
-
-def special_json(to_view):
-    to_view['logged_user'] = logged_user
+def special_json(to_view, session):
+    to_view['logged_user'] = users[search_index_by_nickname(session.get('name'))]
     return to_view
-
 
 def search_users_by_nickname(nickname):
     return [user for user in users if nickname in user.nickname]
 
+def search_index_by_nickname(nickname):
+    for i, user in enumerate(users):
+        if nickname == user.nickname:
+            return i
+    raise RuntimeError('Usuário \'{}\' não encontrado.'.format(nickname))
 
-@route('/')
+#API
+@app.get('/api/users')
+def list_users():
+    return json.dumps([user.__dict__ for user in users])
+
+@app.route('/')
 @view('index.html')
-def home():
-    return special_json({'users': users})
+def home(session):
+    if session.get('name') is None: redirect('/login')
+    return special_json({'users': users}, session)
 
-
-@route('/register')
-@view('register.html')
-def register_page():
-    return special_json({})
-
-
-@get('/users')
+@app.get('/users')
 @view('users.html')
-def list_users_page():
+def list_users_page(session):
+    if session.get('name') is None: redirect('/login')
     list = users
     if 'nickname' in request.query:
         list = search_users_by_nickname(request.query['nickname'])
-    return special_json({'users': list})
+    return special_json({'users': list}, session)
 
-
-@get('/users/<nickname>')
+@app.get('/users/<nickname>')
 @view('user.html')
-def load_user(nickname):
-    if nickname == logged_user.nickname: redirect('/wallet')
+def load_user(session, nickname):
+    if session.get('name') is None: redirect('/login')
+    if nickname == session.get('name'):
+        redirect('/wallet')
     user = None
     for u in users:
         if u.nickname == nickname:
             user = u
-    return special_json({'user': user.__dict__})
+    return special_json({'user': user.__dict__}, session)
 
-
-@get('/wallet')
+@app.get('/wallet')
 @view('wallet.html')
-def load_wallet():
-    return special_json({})
+def load_wallet(session):
+    if session.get('name') is None: redirect('/login')
+    return special_json({}, session)
 
-
-@get('/transactions')
+@app.get('/transactions')
 @view('transactions.html')
-def load_transactions_page():
-    return special_json({'transactions': transactions})
+def load_transactions_page(session):
+    if session.get('name') is None: redirect('/login')
+    return special_json({'transactions': transactions}, session)
 
-
-@post('/users/<dst_user>/transfer')
-def transfer_money(dst_user):
+@app.post('/users/<dst_user>/transfer')
+def transfer_money(session, dst_user):
     global users
     value = float(request.forms.get('money'))
-    print('${} transferred to user {}'.format(value, dst_user))
+    try:
+        idx_src = search_index_by_nickname(session.get('name'))
+        idx_dst = search_index_by_nickname(dst_user)
+        transaction = Transaction(users[idx_src], users[idx_dst], value)
+        transaction.execute()
+        transactions.append(transaction)
+    except RuntimeError as re:
+        print('Erro! {}'.format(re))
+        return
+    except ValueError as ve:
+        print('Erro! -> {}'.format(ve))
     redirect('/users/{}'.format(dst_user))
 
+@app.get('/login')
+@view('login.html')
+def login_page(session):
+    if session.get('name') is not None:
+        redirect('/')
+    return {}
 
-if __name__ == "__main__":
-    user_nickname = str(sys.argv[2])
+@app.post('/login')
+def login_user(session):
+    user_nickname = str(request.forms.get('login'))
     try:
         index = -1
         for idx, user in enumerate(users):
             if user.nickname == user_nickname:
                 index = idx
+                session['name'] = user_nickname
                 break
         if index < 0:
             raise ValueError('Usuário \'{}\' não encontrado.'.format(user_nickname))
     except ValueError as ve:
         print('Erro! {}'.format(ve))
-        exit(1)
+        redirect('/login')
+    redirect('/')
 
-    logged_user = users[idx]
-    run(host='localhost', port=int(sys.argv[1]), reloader=True, debug=True)
+@app.get('/signup')
+@view('signup.html')
+def signup_page(session):
+    if session.get('name') is not None:
+        redirect('/')
+    return {}
+
+@app.post('/signup')
+def signup(session):
+    user_nickname = str(request.forms.get('login'))
+    try:
+        for user in users:
+            if user.nickname == user_nickname:
+                raise ValueError('Usuário \'{}\' já existe.'.format(user_nickname))
+        users.append(User(user_nickname, 0))
+    except ValueError as ve:
+        print('Erro! {}'.format(ve))
+        redirect('/signup')
+    redirect('/')
+
+@app.get('/logout')
+def logout(session):
+    session.destroy()
+    redirect('/login')
+
+if __name__ == "__main__":
+    session_plugin = bottle_session.SessionPlugin(cookie_lifetime=600)
+    app.install(session_plugin)
+    run(app=app, host='localhost', port=int(sys.argv[1]), reloader=True, debug=True)

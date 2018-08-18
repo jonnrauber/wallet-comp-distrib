@@ -18,20 +18,27 @@
   	  </button>
   	  <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
     		<a class="navbar-brand" href="/">Wallet</a>
-    		<ul class="navbar-nav mr-auto mt-2 mt-lg-0">
-          <li class="nav-item active">
-    		    <a class="nav-link" href="/wallet">Minha carteira <span class="sr-only">(current)</span></a>
-    		  </li>
-    		  <li class="nav-item active">
-    		    <a class="nav-link" href="/users">Pagar a alguém</a>
-    		  </li>
-          <li class="nav-item active">
-    		    <a class="nav-link" href="/transactions">Últimas transações</a>
-    		  </li>
-    		</ul>
+        {% if logged_user is defined: %}
+      		<ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+            <li class="nav-item active">
+      		    <a class="nav-link" href="/wallet">Minha carteira <span class="sr-only">(current)</span></a>
+      		  </li>
+      		  <li class="nav-item active">
+      		    <a class="nav-link" href="/users">Pagar a alguém</a>
+      		  </li>
+            <li class="nav-item active">
+      		    <a class="nav-link" href="/transactions">Últimas transações</a>
+      		  </li>
+      		</ul>
+        {% endif %}
   	  </div>
       <div class="text-right">
-        Olá, <a href="/wallet">{{logged_user.nickname}}</a>!
+        {% if logged_user is defined: %}
+          Olá, <a href="/wallet">{{logged_user.nickname}}</a>! <a href="/logout">Sair</a>
+        {% else %}
+          <a href="/login">Login</a>
+          <a href="/signup">Registrar</a>
+        {% endif %}
       </div>
     </div>
 	</nav>

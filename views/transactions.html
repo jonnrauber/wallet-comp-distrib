@@ -27,7 +27,13 @@
         {% for transaction in transactions %}
           <tr>
             <td>
-              <a href='users/{{user.nickname}}'>{{ transaction.src_user.nickname }}</a>
+              <a href='users/{{transaction.src_user.nickname}}'>{{ transaction.src_user.nickname }}</a>
+            </td>
+            <td>
+              <a href='users/{{transaction.dst_user.nickname}}'>{{ transaction.dst_user.nickname }}</a>
+            </td>
+            <td>
+              {{"${:,.2f}".format(transaction.value)}}
             </td>
           </tr>
         </tbody>
