@@ -76,7 +76,7 @@ def load_wallet(session):
 @view('transactions.html')
 def load_transactions_page(session):
     if session.get('name') is None: redirect('/login')
-    return special_json({'transactions': transactions}, session)
+    return special_json({'transactions': transactions[::-1]}, session)
 
 @app.post('/users/<dst_user>/transfer')
 def transfer_money(session, dst_user):
