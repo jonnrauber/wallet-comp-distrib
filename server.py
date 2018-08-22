@@ -1,4 +1,5 @@
 import bottle_session
+import requests
 from bottle import request, post, get, route, jinja2_view, run, redirect, template, static_file, app
 import functools
 import json
@@ -10,7 +11,10 @@ from classes import User, Transaction
 app = app()
 view = functools.partial(jinja2_view, template_lookup=['views'])
 
-"""Informação a ser compartilhada entre servers"""
+#"Vizinhos"
+peers = sys.argv[2:]
+
+### Informação a ser compartilhada entre servers ###
 #informações do usuário em pares (nickname, money)
 users = [User('jose', 300), User('maria', 20)]
 #transações de toda a aplicação (src_user, dst_user, money)
@@ -144,7 +148,28 @@ def logout(session):
     session.destroy()
     redirect('/login')
 
+def refresh_from_peers():
+    global users, transactions
+    time.sleep(5)
+    while True:
+        time.sleep(1)
+        new_users = []
+        for p in peers:
+            r = requests.get(p + '/api/users')
+            new_users = new_users + json.loads(r.text)
+            time.sleep(1)
+
+        for user_dict in new_users:
+            user = User(**user_dict)
+            if len(search_users_by_nickname(user.nickname)) > 0:
+                continue
+            users.append(user)
+            print("DETECTOU MUDANÇA")
+
 if __name__ == "__main__":
     session_plugin = bottle_session.SessionPlugin(cookie_lifetime=600)
     app.install(session_plugin)
+
+    t = threading.Thread(target=refresh_from_peers)
+    t.start()
     run(app=app, host='localhost', port=int(sys.argv[1]), reloader=True, debug=True)

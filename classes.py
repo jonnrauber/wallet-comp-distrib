@@ -1,4 +1,7 @@
 class User:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
+
     def __init__(self, nickname, money):
         self.nickname = nickname
         self.money = money
