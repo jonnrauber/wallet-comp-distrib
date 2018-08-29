@@ -6,7 +6,7 @@ import json
 import threading
 import time
 import sys
-from classes import User, Transaction
+from classes import User, Transaction, ComplexEncoder
 
 app = app()
 view = functools.partial(jinja2_view, template_lookup=['views'])
@@ -44,6 +44,10 @@ def search_index_by_nickname(nickname):
 @app.get('/api/users')
 def list_users():
     return json.dumps([user.__dict__ for user in users])
+
+@app.get('/api/transactions')
+def list_transactions():
+    return json.dumps([json.loads(json.dumps(transaction.reprJSON(), cls=ComplexEncoder)) for transaction in transactions])
 
 @app.route('/')
 @view('index.html')
@@ -158,10 +162,19 @@ def refresh_from_peers():
     while True:
         time.sleep(2)
         ngbr_users = []
+        ngbr_transactions = []
+        print('Peers: {}'.format(peers))
         for p in peers:
+            #atualiza users
             r = requests.get(p + '/api/users')
             ngbr_users = ngbr_users + json.loads(r.text)
+            print('Usuários: {}'.format(ngbr_users))
             users = update_users(ngbr_users)
+            #atualiza transactions
+            r = requests.get(p + '/api/transactions')
+            ngbr_transactions = ngbr_transactions + json.loads(r.text)
+            print('Transações: {}'.format(ngbr_transactions))
+            transactions = update_transactions(ngbr_transactions)
             time.sleep(1)
 
 def update_users(ngbr_users):
@@ -174,6 +187,14 @@ def update_users(ngbr_users):
         else:
             new_users[idx_user] = user
     return new_users
+
+def update_transactions(ngbr_transactions):
+    new_transactions = transactions #pega os valores da lista global
+    for transaction_dict in ngbr_transactions:
+        transaction = Transaction(**transaction_dict)
+        if transaction not in new_transactions:
+            new_transactions.append(transaction)
+    return new_transactions
 
 if __name__ == "__main__":
     session_plugin = bottle_session.SessionPlugin(cookie_lifetime=600)
