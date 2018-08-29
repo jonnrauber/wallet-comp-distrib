@@ -41,6 +41,10 @@ def search_index_by_nickname(nickname):
     return -1
 
 #API
+@app.get('/api/peers')
+def list_peers():
+    return json.dumps(peers)
+
 @app.get('/api/users')
 def list_users():
     return json.dumps([user.__dict__ for user in users])
@@ -157,25 +161,36 @@ def logout(session):
     redirect('/login')
 
 def refresh_from_peers():
-    global users, transactions
+    global users, transactions, peers
     time.sleep(3)
     while True:
         time.sleep(2)
         ngbr_users = []
         ngbr_transactions = []
+        ngbr_peers = []
+        print('#'*10)
         print('Peers: {}'.format(peers))
+        print('Usuários: {}'.format(users))
+        print('Transações: {}'.format(transactions))
         for p in peers:
+            print('- \ - / - \ - / - \ - / - \ - / -')
+            print('Mandando requisições para: {}'.format(p))
+            #atualiza peers
+            r = requests.get(p + '/api/peers')
+            ngbr_peers = ngbr_peers + json.loads(r.text)
+            print('Peers: {}'.format(ngbr_peers))
             #atualiza users
             r = requests.get(p + '/api/users')
             ngbr_users = ngbr_users + json.loads(r.text)
             print('Usuários: {}'.format(ngbr_users))
-            users = update_users(ngbr_users)
             #atualiza transactions
             r = requests.get(p + '/api/transactions')
             ngbr_transactions = ngbr_transactions + json.loads(r.text)
             print('Transações: {}'.format(ngbr_transactions))
-            transactions = update_transactions(ngbr_transactions)
             time.sleep(1)
+        peers[:] = list(set(ngbr_peers + peers))
+        users = update_users(ngbr_users)
+        transactions = update_transactions(ngbr_transactions)
 
 def update_users(ngbr_users):
     new_users = users #pega os valores da lista global
