@@ -26,7 +26,9 @@ def stylesheets(filename):
     return static_file(filename, root='static/')
 
 def special_json(to_view, session):
-    to_view['logged_user'] = users[search_index_by_nickname(session.get('name'))]
+    index = search_index_by_nickname(session.get('name'))
+    if index >= 0:
+        to_view['logged_user'] = users[index]
     return to_view
 
 def search_users_by_nickname(nickname):
@@ -36,7 +38,7 @@ def search_index_by_nickname(nickname):
     for i, user in enumerate(users):
         if nickname == user.nickname:
             return i
-    raise RuntimeError('Usuário \'{}\' não encontrado.'.format(nickname))
+    return -1
 
 #API
 @app.get('/api/users')
@@ -89,6 +91,8 @@ def transfer_money(session, dst_user):
     try:
         idx_src = search_index_by_nickname(session.get('name'))
         idx_dst = search_index_by_nickname(dst_user)
+        if idx_src < 0 or idx_dst < 0:
+            raise ValueError('Usuário \'{}\' não encontrado.'.format(user_nickname))
         transaction = Transaction(users[idx_src], users[idx_dst], value)
         transaction.execute()
         transactions.append(transaction)
@@ -150,21 +154,26 @@ def logout(session):
 
 def refresh_from_peers():
     global users, transactions
-    time.sleep(5)
+    time.sleep(3)
     while True:
-        time.sleep(1)
-        new_users = []
+        time.sleep(2)
+        ngbr_users = []
         for p in peers:
             r = requests.get(p + '/api/users')
-            new_users = new_users + json.loads(r.text)
+            ngbr_users = ngbr_users + json.loads(r.text)
+            users = update_users(ngbr_users)
             time.sleep(1)
 
-        for user_dict in new_users:
-            user = User(**user_dict)
-            if len(search_users_by_nickname(user.nickname)) > 0:
-                continue
-            users.append(user)
-            print("DETECTOU MUDANÇA")
+def update_users(ngbr_users):
+    new_users = users #pega os valores da lista global
+    for user_dict in ngbr_users:
+        user = User(**user_dict)
+        idx_user = search_index_by_nickname(user.nickname)
+        if idx_user < 0:
+            new_users.append(user)
+        else:
+            new_users[idx_user] = user
+    return new_users
 
 if __name__ == "__main__":
     session_plugin = bottle_session.SessionPlugin(cookie_lifetime=600)
