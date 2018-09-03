@@ -10,6 +10,7 @@ from classes import User, Transaction, ComplexEncoder
 
 app = app()
 view = functools.partial(jinja2_view, template_lookup=['views'])
+lock = threading.Lock()
 
 #"Vizinhos"
 peers = sys.argv[2:]
@@ -44,6 +45,15 @@ def search_index_by_nickname(nickname):
 @app.get('/api/peers')
 def list_peers():
     return json.dumps(peers)
+
+@app.get('/api/peers/add')
+def i_am_here():
+    global peers
+    if 'host' in request.query and 'port' in request.query:
+        peer = 'http://{}:{}'.format(request.query['host'], request.query['port'])
+        if peer not in peers:
+            peers.append(peer)
+            print('Peer {} adicionado.'.format(peer))
 
 @app.get('/api/users')
 def list_users():
@@ -160,37 +170,75 @@ def logout(session):
     session.destroy()
     redirect('/login')
 
-def refresh_from_peers():
-    global users, transactions, peers
+
+def fault_detector():
+    global lock
+    time.sleep(3)
+    while True:
+        time.sleep(3)
+        for p in peers:
+            if p == 'http://localhost/{}'.format(sys.argv[1]):
+                continue
+            try:
+                r = requests.get('{}/api/peers/add?host={}&port={}'.format(p, 'localhost', sys.argv[1]))
+            except requests.exceptions.ConnectionError:
+                pass
+
+
+def refresh_peers():
+    global lock
     time.sleep(3)
     while True:
         time.sleep(2)
-        ngbr_users = []
-        ngbr_transactions = []
-        ngbr_peers = []
-        print('#'*10)
-        print('Peers: {}'.format(peers))
-        print('Usuários: {}'.format(users))
-        print('Transações: {}'.format(transactions))
+        np = []
         for p in peers:
-            print('- \ - / - \ - / - \ - / - \ - / -')
-            print('Mandando requisições para: {}'.format(p))
-            #atualiza peers
-            r = requests.get(p + '/api/peers')
-            ngbr_peers = ngbr_peers + json.loads(r.text)
-            print('Peers: {}'.format(ngbr_peers))
-            #atualiza users
-            r = requests.get(p + '/api/users')
-            ngbr_users = ngbr_users + json.loads(r.text)
-            print('Usuários: {}'.format(ngbr_users))
-            #atualiza transactions
-            r = requests.get(p + '/api/transactions')
-            ngbr_transactions = ngbr_transactions + json.loads(r.text)
-            print('Transações: {}'.format(ngbr_transactions))
+            if p == 'http://localhost/{}'.format(sys.argv[1]):
+                continue
+            try:
+                #atualiza peers
+                r = requests.get(p + '/api/peers')
+                np.append(p)
+                np.extend(json.loads(r.text))
+            except requests.exceptions.ConnectionError:
+                pass
             time.sleep(1)
-        peers[:] = list(set(ngbr_peers + peers))
-        users = update_users(ngbr_users)
-        transactions = update_transactions(ngbr_transactions)
+        with lock:
+            peers[:] = list(set(np))
+        print('Peers: {}'.format(peers))
+
+def refresh_users():
+    global users
+    time.sleep(3)
+    while True:
+        time.sleep(2)
+        nu = []
+        for p in peers:
+            try:
+                #atualiza users
+                r = requests.get(p + '/api/users')
+                nu = nu + json.loads(r.text)
+            except requests.exceptions.ConnectionError:
+                pass
+            time.sleep(1)
+        users = update_users(nu)
+        print('Usuários: {}'.format(users))
+
+def refresh_transactions():
+    global transactions
+    time.sleep(3)
+    while True:
+        time.sleep(2)
+        nt = []
+        for p in peers:
+            try:
+                #atualiza transactions
+                r = requests.get(p + '/api/transactions')
+                nt = nt + json.loads(r.text)
+            except requests.exceptions.ConnectionError:
+                pass
+            time.sleep(1)
+        transactions = update_transactions(nt)
+        print('Transações: {}'.format(transactions))
 
 def update_users(ngbr_users):
     new_users = users #pega os valores da lista global
@@ -215,6 +263,12 @@ if __name__ == "__main__":
     session_plugin = bottle_session.SessionPlugin(cookie_lifetime=600)
     app.install(session_plugin)
 
-    t = threading.Thread(target=refresh_from_peers)
-    t.start()
-    run(app=app, host='localhost', port=int(sys.argv[1]), reloader=True, debug=True)
+    t1 = threading.Thread(target=refresh_peers)
+    t2 = threading.Thread(target=fault_detector)
+    t3 = threading.Thread(target=refresh_users)
+    t4 = threading.Thread(target=refresh_transactions)
+    t1.start()
+    t2.start()
+    t3.start()
+    t4.start()
+    run(app=app, host='localhost', port=int(sys.argv[1]), reloader=False, debug=False)

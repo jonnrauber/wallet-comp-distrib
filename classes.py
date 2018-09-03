@@ -7,10 +7,10 @@ class User:
         self.money = money
 
     def __str__(self):
-        return '{}, ${:.2f}'.format(self.nickname, self.money)
+        return '{} (${:.2f})'.format(self.nickname, self.money)
 
     def __repr__(self):
-        return '{}, ${:.2f}'.format(self.nickname, self.money)
+        return '{} (${:.2f})'.format(self.nickname, self.money)
 
     def withdraw(self, value):
         self.money -= value
@@ -27,6 +27,14 @@ class Transaction:
         self.dst_user = dst_user
         self.value = value
         self.timestamp = timestamp
+
+    def __str__(self):
+        return '${:.2f} transferidos de \'{}\' para \'{}\''.\
+            format(self.value, self.src_user, self.dst_user)
+
+    def __repr__(self):
+        return '${:.2f} transferidos de \'{}\' para \'{}\''.\
+            format(self.value, self.src_user, self.dst_user)
 
     def reprJSON(self):
         return dict(src_user=self.src_user, dst_user=self.dst_user, value=self.value, timestamp=self.timestamp)
