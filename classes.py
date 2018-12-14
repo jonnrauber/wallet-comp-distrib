@@ -1,66 +1,45 @@
-import time
-import json
-
-class User:
-    def __init__(self, nickname, money):
-        self.nickname = nickname
-        self.money = money
+class Peer:
+    def __init__(self, address):
+        self.address = address
 
     def __str__(self):
-        return '{} (${:.2f})'.format(self.nickname, self.money)
+        return '<{}>'.format(self.address)
 
     def __repr__(self):
-        return '{} (${:.2f})'.format(self.nickname, self.money)
-
-    def withdraw(self, value):
-        self.money -= value
-
-    def deposit(self, value):
-        self.money += value
-
-    def reprJSON(self):
-        return dict(nickname=self.nickname, money=self.money)
-
-class Transaction:
-    def __init__(self, src_user, dst_user, value, timestamp=time.time()):
-        self.src_user = src_user
-        self.dst_user = dst_user
-        self.value = value
-        self.timestamp = timestamp
-
-    def __str__(self):
-        return '${:.2f} transferidos de \'{}\' para \'{}\''.\
-            format(self.value, self.src_user, self.dst_user)
-
-    def __repr__(self):
-        return '${:.2f} transferidos de \'{}\' para \'{}\''.\
-            format(self.value, self.src_user, self.dst_user)
-
-    def reprJSON(self):
-        return dict(src_user=self.src_user, dst_user=self.dst_user, value=self.value, timestamp=self.timestamp)
+        return '<{}>'.format(self.address)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self.timestamp == other.timestamp \
-                    and self.src_user == other.src_user \
-                    and self.dst_user == other.dst_user \
-                    and self.value == other.value
+            return self.address == other.address
         else:
             return False
 
-    def execute(self):
-        if self.value < 0:
-            raise ValueError('O valor da transação deve ser positivo!')
-        if self.src_user.money - self.value < 0:
-            raise ValueError('Saldo insuficiente para a transação!')
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
-        self.src_user.withdraw(self.value)
-        self.dst_user.deposit(self.value)
+    def __hash__(self):
+        return hash(self.address)
 
+class Transaction:
+    def __init__(self, peer_origem, peer_destino, valor, vector_clock=None):
+        self.peer_origem = peer_origem
+        self.peer_destino = peer_destino
+        self.valor = valor
+        self.vector_clock = vector_clock
 
-class ComplexEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if hasattr(obj,'reprJSON'):
-            return obj.reprJSON()
+    def __str__(self):
+        return '${:.2f} transferidos de \'{}\' para \'{}\''.\
+            format(self.valor, self.peer_origem, self.peer_destino)
+
+    def __repr__(self):
+        return '${:.2f} transferidos de \'{}\' para \'{}\''.\
+            format(self.valor, self.peer_origem, self.peer_destino)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.peer_origem == other.peer_origem \
+                and self.peer_destino == other.peer_destino \
+                and self.valor == other.valor \
+                and self.vector_clock == other.vector_clock
         else:
-            return json.JSONEncoder.default(self, obj)
+            return False
