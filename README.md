@@ -10,10 +10,12 @@ Atualmente implementado no formato cliente-servidor.
 ### redis-server
 ```sudo apt install redis-server```
 ## Funcionamento
-Existem duas listas, uma de objetos da classe User e outra de objetos da classe Transaction.
-A lista de User contém os nomes de usuário e o valor em suas respectivas carteiras.
-A lista de Transaction contém o usuário origem, destino e o valor da transação.
-Existem dois usuários pré-carregados na lista, 'jose' com $300.00 e 'maria' com $20.00, só para injetar "dinheiro" na aplicação. A partir destes é possível transferir dinheiro aos demais usuários, até mesmo os que forem criados na página de registro - e que iniciam com $0.00.
+Ao iniciar um client, o usuário é criado com o nick 'http://localhost:' + {a porta do processo do client}.
+Esse usuário inicia com 200 de saldo.
+Os peers vizinhos são passados como argumento na execução.
+Uma Transaction contém o usuário origem, destino, valor da transação e um relógio vetor para ordenação.
+Quando um usuário envia dinheiro para outro, este cria uma transação e incrementa o relógio vetor.
+Quando os usuários recebem uma nova transação, são capazes de verificar pelo relógio vetor se foi perdida uma transação anterior (nesse caso exibe mensagem no terminal do client). Também o relógio vetor é o responsável pela correta ordenação das transações na tela inicial exibida no navegador web.
 
 ## Execução
 ### Instrução de execução:
